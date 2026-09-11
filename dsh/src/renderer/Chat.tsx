@@ -41,7 +41,10 @@ interface ChatStatus {
 
 export function Chat({ workspace, visible }: ChatProps) {
   const api = useDlientApi()
-  const { t, locale } = useI18n()
+  const { t: tNode, locale } = useI18n()
+  // 宿主 t 返回 ReactNode（支持插值）；dsh 文案都是纯文本，这里收敛为 string，
+  // 以适配 Empty.title / Loading.text 等只接受 string 的组件 prop。
+  const t = (key: string) => String(tNode(key))
   const [status, setStatus] = useState<ChatStatus>({ phase: 'idle' })
   const startingRef = useRef(false)
   /** 最近一次状态（visible 变化时判断「是否已就绪」用；不进 effect deps，避免无谓重跑） */

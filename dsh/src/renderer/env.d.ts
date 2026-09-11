@@ -6,10 +6,12 @@ declare module '*.css?raw' {
   export default content
 }
 
-/** preload 暴露的渲染层桥子集（主题广播） */
+/** preload 暴露的渲染层桥子集（主题 / 语言广播） */
 interface Window {
   dlient: {
     /** 监听主进程主题广播（'dark' / 'light'；含初始回放） */
     on(channel: 'theme', callback: (theme: 'dark' | 'light') => void): () => void
+    /** 监听主进程语言广播（locale，如 'zh-CN' / 'en-US'；含初始回放） */
+    on(channel: 'language', callback: (locale: string) => void): () => void
   }
 }

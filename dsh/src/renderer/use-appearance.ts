@@ -26,7 +26,7 @@ export function useDshAppearance(enabled = true): void {
 
   useEffect(() => {
     if (!enabled) return
-    let lang = typeof locale === 'string' && locale ? locale : 'en-US'
+    let lang: string = typeof locale === 'string' && locale ? locale : 'en-US'
     let dark = darkRef.current
     void pushAppearance(lang, dark)
     const offLang = window.dlient.on('language', (l) => {

@@ -355,7 +355,7 @@ const chat = createChatController({
 // ---- 对外方法（渲染端 api.request / 其它插件 plugin.invoke）----
 
 /** 宿主外观下发（渲染端在语言/主题变化与启动时调用）：记录并同步 settings.yaml */
-rpc.registerHandler('dsh.applyAppearance', async ([language, dark]: [language?: string, dark?: boolean]) => {
+rpc.registerHandler('dsh.applyAppearance', async ([language, dark]) => {
   appearanceDesired = {
     locale: typeof language === 'string' ? language : undefined,
     dark: typeof dark === 'boolean' ? dark : undefined,
@@ -413,7 +413,7 @@ rpc.registerHandler('dsh.stop', async () => {
 rpc.registerHandler('dsh.status', () => current)
 
 // chat 面（渲染端 Chat 组件 / 其它插件经 PluginView 挂载后调用）
-rpc.registerHandler('dsh.chatStart', async ([options]: [{ workspace?: string }?]) => {
+rpc.registerHandler('dsh.chatStart', async ([options]) => {
   // 启动前按最近下发的宿主外观同步 settings.yaml（chat 页面启动即用目标语言/主题）
   try {
     await syncDshAppearance(appearanceDesired)
