@@ -1,0 +1,25 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schemas/tools.json",
+  "name": "dsh",
+  "description": "dlient 中的 DeepSeek Harness：启动/停止 dsh 服务并返回访问地址",
+  "tools": [
+    {
+      "name": "dsh.start",
+      "description": "确保 Node.js 与 DSH 就绪，启动 dsh web 服务并返回访问 URL",
+      "inputSchema": { "type": "object", "properties": {}, "required": [] },
+      "permissions": []
+    },
+    {
+      "name": "dsh.stop",
+      "description": "停止正在运行的 dsh web 服务（清理 PID 文件 / 端口）",
+      "inputSchema": { "type": "object", "properties": {}, "required": [] },
+      "permissions": []
+    },
+    {
+      "name": "dsh.status",
+      "description": "查询 dsh 服务状态（是否运行、URL）",
+      "inputSchema": { "type": "object", "properties": {}, "required": [] },
+      "permissions": []
+    }
+  ]
+}

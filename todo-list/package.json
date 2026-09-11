@@ -1,0 +1,163 @@
+{
+  "name": "todo-list",
+  "version": "0.1.0",
+  "type": "module",
+  "dlient": {
+    "id": "todo-list",
+    "name": {
+      "default": "TodoList",
+      "zh-CN": "待办清单",
+      "en-US": "TodoList"
+    },
+    "description": {
+      "default": "A day-by-day task timeline with start/due dates, priorities, search and progress tracking; today is centered and data stays local.",
+      "zh-CN": "按天排布的待办时间轴：开始/截止日期、优先级、搜索与进度统计，当天居中显示，数据保存在本机插件数据目录。",
+      "en-US": "A day-by-day task timeline with start/due dates, priorities, search and progress tracking; today is centered and data stays local."
+    },
+    "type": "app",
+    "source": "dev",
+    "workerMode": "shared",
+    "icon": "assets/icon.svg",
+    "search_api": "",
+    "platforms": [
+      "win32.x64",
+      "win32.arm64",
+      "darwin.x64",
+      "darwin.arm64",
+      "linux.x64",
+      "linux.arm64"
+    ],
+    "permissions": [
+      "app.data",
+      "log"
+    ],
+    "expose": {
+      "todo-list.state": {
+        "description": "读取全部待办与统计信息（无参数）",
+        "access": "public",
+        "paramsSchema": {
+          "type": "array",
+          "description": "参数（按位置）",
+          "items": [],
+          "maxItems": 0
+        }
+      },
+      "todo-list.add": {
+        "description": "新增待办：[{ title, startAt?, priority?, dueAt?, note? }]（startAt 缺省 = 今天，决定它落在时间轴的哪一天）",
+        "access": "public",
+        "paramsSchema": {
+          "type": "array",
+          "description": "参数（按位置）",
+          "items": [
+            {
+              "type": "object",
+              "description": "新增入参",
+              "properties": {
+                "title": { "type": "string", "description": "任务标题（必填，≤200 字符）" },
+                "startAt": {
+                  "type": ["number", "null"],
+                  "description": "开始日期（本地零点毫秒时间戳）；缺省 = 今天，null = 未排期"
+                },
+                "priority": { "type": "string", "enum": ["high", "normal", "low"] },
+                "dueAt": { "type": ["number", "null"], "description": "截止日期（本地零点毫秒时间戳）" },
+                "note": { "type": "string", "description": "备注（≤1000 字符）" }
+              },
+              "required": ["title"]
+            }
+          ],
+          "minItems": 1,
+          "maxItems": 1
+        }
+      },
+      "todo-list.update": {
+        "description": "修改待办：[{ id, title?, note?, priority?, startAt?, dueAt?, done? }]（只传需要修改的字段）",
+        "access": "public",
+        "paramsSchema": {
+          "type": "array",
+          "description": "参数（按位置）",
+          "items": [
+            {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string", "description": "待办 id" },
+                "title": { "type": "string" },
+                "note": { "type": "string" },
+                "priority": { "type": "string", "enum": ["high", "normal", "low"] },
+                "startAt": { "type": ["number", "null"], "description": "开始日期（null = 移入未排期）" },
+                "dueAt": { "type": ["number", "null"] },
+                "done": { "type": "boolean" }
+              },
+              "required": ["id"]
+            }
+          ],
+          "minItems": 1,
+          "maxItems": 1
+        }
+      },
+      "todo-list.toggle": {
+        "description": "勾选 / 取消勾选待办：[id, done?]（done 缺省时取反）",
+        "access": "public",
+        "paramsSchema": {
+          "type": "array",
+          "description": "参数（按位置）",
+          "items": [
+            { "type": "string", "description": "待办 id" },
+            { "type": "boolean", "description": "目标完成态（缺省 = 取反）" }
+          ],
+          "minItems": 1,
+          "maxItems": 2
+        }
+      },
+      "todo-list.remove": {
+        "description": "删除一条待办：[id]",
+        "access": "public",
+        "paramsSchema": {
+          "type": "array",
+          "description": "参数（按位置）",
+          "items": [{ "type": "string", "description": "待办 id" }],
+          "minItems": 1,
+          "maxItems": 1
+        }
+      },
+      "todo-list.clearCompleted": {
+        "description": "清除全部已完成待办（无参数）",
+        "access": "public",
+        "paramsSchema": {
+          "type": "array",
+          "description": "参数（按位置）",
+          "items": [],
+          "maxItems": 0
+        }
+      }
+    },
+    "dependencies": {}
+  },
+  "scripts": {
+    "build": "node script/build-clean.mjs && npm run typecheck && npm run build:ui && npm run build:worker",
+    "typecheck": "tsc --noEmit",
+    "build:ui": "vite build",
+    "build:worker": "node script/build-worker.mjs",
+    "pack": "npm run build && node script/make-dlient.mjs",
+    "dev:watch": "vite build --watch",
+    "dev:watch:worker": "node script/build-worker.mjs --watch",
+    "dev": "concurrently -k \"npm:dev:watch\" \"npm:dev:watch:worker\""
+  },
+  "devDependencies": {
+    "@dlient-open/api-bridge": "^0.1.0",
+    "@dlient-open/i18n": "^0.1.0",
+    "@dlient-open/native-host-sdk": "^0.1.1",
+    "@dlient-open/plugin-sdk": "^0.1.0",
+    "@dlient-open/ui": "^0.1.0",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "@vitejs/plugin-react": "^4.2.1",
+    "esbuild": "^0.20.0",
+    "lucide-react": "^0.454.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.6",
+    "concurrently": "^9.1.0"
+  }
+}

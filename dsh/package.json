@@ -1,0 +1,98 @@
+{
+  "name": "@dlient-open/dsh",
+  "version": "0.2.7",
+  "author": "Dlient",
+  "license": "MIT",
+  "description": "Run the DeepSeek Harness (dsh) AI agent inside dlient, with an embeddable chat surface for other plugins",
+  "keywords": [
+    "dlient-open-plugin",
+    "dlient",
+    "app",
+    "ai",
+    "deepseek",
+    "deepseek-harness",
+    "ai-agent",
+    "chat"
+  ],
+  "type": "module",
+  "files": [
+    "dist",
+    "assets",
+    "script",
+    "*.dlient"
+  ],
+  "dlient": {
+    "id": "dsh",
+    "name": {
+      "default": "DeepSeek Harness",
+      "zh-CN": "DeepSeek Harness",
+      "en-US": "DeepSeek Harness"
+    },
+    "description": {
+      "default": "在 dlient 中运行 DeepSeek Harness（AI Agent）",
+      "zh-CN": "在 dlient 中运行 DeepSeek Harness（AI Agent）",
+      "en-US": "Run DeepSeek Harness AI Agent inside dlient"
+    },
+    "type": "app",
+    "source": "dev",
+    "icon": "assets/icon.svg",
+    "platforms": [
+      "win32.x64",
+      "win32.arm64",
+      "darwin.x64",
+      "darwin.arm64",
+      "linux.x64",
+      "linux.arm64"
+    ],
+    "permissions": [
+      "child.spawn",
+      "child.execFile",
+      "net.getFreePort",
+      "net.probePort",
+      "app.getPath",
+      "i18n.getLocale",
+      "log.write",
+      "nodejs.resolveRuntime",
+      "nodejs.install",
+      "fs.read",
+      "fs.mkdir",
+      "fs.write",
+      "fs.delete",
+      "permission.request"
+    ],
+    "expose": {},
+    "spawnCmds": [
+      "CMD_NODE",
+      "CMD_NPM",
+      "CMD_PNPM"
+    ],
+    "nodeVersion": "22",
+    "system": false
+  },
+  "scripts": {
+    "build": "node script/build-clean.mjs && npm run build:ui && npm run build:worker",
+    "build:ui": "vite build",
+    "build:worker": "node script/build-worker.mjs",
+    "pack": "npm run build && node script/make-dlient.mjs",
+    "prepublishOnly": "npm run pack",
+    "dev:watch": "vite build --watch",
+    "dev:watch:worker": "node script/build-worker.mjs --watch",
+    "dev": "concurrently -k \"npm:dev:watch\" \"npm:dev:watch:worker\""
+  },
+  "devDependencies": {
+    "@dlient-open/api-bridge": "^0.1.0",
+    "@dlient-open/i18n": "^0.1.0",
+    "@dlient-open/plugin-sdk": "^0.1.0",
+    "@dlient-open/ui": "^0.1.0",
+    "@types/node": "^26.2.0",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "@vitejs/plugin-react": "^4.2.1",
+    "concurrently": "^9.1.0",
+    "esbuild": "^0.20.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.6"
+  }
+}

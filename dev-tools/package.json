@@ -1,0 +1,137 @@
+{
+  "name": "@dlient-open/dev-tools",
+  "version": "0.1.9",
+  "author": "Dlient",
+  "license": "MIT",
+  "description": "dlient dev-plugin toolbox: create from template, auto-build, live preview, pack to .dlient, logs",
+  "keywords": [
+    "dlient-open-plugin",
+    "dlient",
+    "app",
+    "dev-tools",
+    "plugin-development",
+    "preview"
+  ],
+  "type": "module",
+  "files": [
+    "dist",
+    "assets",
+    "script",
+    "*.dlient"
+  ],
+  "dlient": {
+    "id": "dev-tools",
+    "name": {
+      "default": "Dev Tools",
+      "zh-CN": "插件开发工具箱",
+      "en-US": "Dev Tools"
+    },
+    "description": {
+      "default": "Manage and preview dev plugins (create / build / preview / pack / logs)",
+      "zh-CN": "开发插件管理与预览：模板创建 / 添加目录 / 自动构建 / 实例预览 / 打包 / 日志",
+      "en-US": "Manage and preview dev plugins: template create / add dir / auto build / instance preview / pack / logs"
+    },
+    "type": "app",
+    "source": "market",
+    "system": false,
+    "icon": "assets/icon.svg",
+    "platforms": [
+      "win32.x64",
+      "win32.arm64",
+      "darwin.x64",
+      "darwin.arm64",
+      "linux.x64",
+      "linux.arm64"
+    ],
+    "nodeVersion": "22",
+    "spawnCmds": [
+      "CMD_NODE",
+      "CMD_NPM"
+    ],
+    "permissions": [
+      "log",
+      "fs.read",
+      "fs.write",
+      "fs.delete",
+      "fs.listDir",
+      "fs.watch",
+      "fs.stat",
+      "fs.mkdir",
+      "fs.unwatch",
+      "dialog.showOpenDialog",
+      "dialog.showSaveDialog",
+      "app.getLocale",
+      "app.data.read",
+      "app.data.write",
+      "child.spawn",
+      "nodejs.resolveRuntime",
+      "nodejs.install",
+      "permission.request",
+      "os.showItemInFolder",
+      "plugin.dev.sync",
+      "plugin.dev.getDirInfo",
+      "plugin.dev.startWatcher",
+      "plugin.dev.stopWatcher",
+      "plugin.dev.stopDevWorker",
+      "plugin.scanInstalled",
+      "plugin.runtimeList"
+    ],
+    "fsDirs": {
+      "read": [
+        "PLUGINS"
+      ],
+      "write": [
+        "PLUGINS"
+      ]
+    },
+    "expose": {
+      "dev-tools.fs-watch-event": {
+        "description": "宿主 fs.watch 事件回调：目录内文件变更时宿主主动推送（watchId + filename），用于同步 dev 插件 package.json 变更",
+        "access": "default",
+        "paramsSchema": {
+          "type": "array",
+          "description": "参数（按位置）",
+          "items": [
+            {
+              "name": "watchId",
+              "type": "string",
+              "description": "宿主 fs.watch 返回的监听 ID（watchPackageJson 登记保存）"
+            },
+            {
+              "name": "filename",
+              "type": "string",
+              "description": "变更文件名（仅处理顶层 package.json）"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node script/build-clean.mjs && npm run build:ui && npm run build:worker",
+    "build:ui": "vite build",
+    "build:worker": "node script/build-worker.mjs",
+    "pack": "npm run build && node script/make-dlient.mjs",
+    "prepublishOnly": "npm run pack",
+    "dev:watch": "vite build --watch",
+    "dev:watch:worker": "node script/build-worker.mjs --watch",
+    "dev": "concurrently -k \"npm:dev:watch\" \"npm:dev:watch:worker\""
+  },
+  "devDependencies": {
+    "@atomic-editor/editor": "^0.6.2",
+    "@dlient-open/api-bridge": "^0.1.0",
+    "@dlient-open/i18n": "^0.1.0",
+    "@dlient-open/plugin-sdk": "^0.1.4",
+    "@dlient-open/ui": "^0.3.1",
+    "@types/node": "^26.2.0",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "@vitejs/plugin-react": "^4.2.1",
+    "concurrently": "^9.1.0",
+    "esbuild": "^0.20.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.6"
+  }
+}

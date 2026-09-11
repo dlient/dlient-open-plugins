@@ -1,0 +1,42 @@
+{
+  "name": "@dlient/dsh-chat-ui",
+  "description": "dsh chat surface: single-column chat UI (no left sidebar), URL-driven workspace/theme/language, the product's own blank-session agent-preset chip as the mode selector, --workspace startup registration, and window.setTheme / window.setLanguage",
+  "version": "0.1.1",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./startup": {
+      "default": "./lib/startup.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web"
+    }
+  },
+  "dependencies": {
+    "commander": "^15.0.0",
+    "@deepseek-ai/dsh-cmdline": "^0.1.1-rc.2"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-client-runtime": "^0.1.1-rc.2"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/startup.js",
+    "lib/client.js",
+    "install.js",
+    "profile"
+  ]
+}

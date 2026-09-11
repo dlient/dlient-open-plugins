@@ -1,0 +1,648 @@
+/* todo-list 样式（src/renderer/styles.css）
+ *
+ * 颜色策略：结构色一律用 currentColor 的 color-mix 派生（hover 底色 / 分隔线 / 列边框 / 强调色），
+ * 因此亮暗主题自动跟随宿主，不会在暗色下出现"白底白字"；语义色（逾期红 / 今天蓝）用固定色。
+ * 组件色（按钮 / 徽标 / 输入框）全部交给 @dlient-open/ui 的 shadcn 变量，本文件不重复定义。
+ * 作用域：构建期由 plugin-sdk 预设改写为 `[data-plugin="todo-list"] :where(...)`，
+ * 仅作用于本插件视图子树及其弹层（Popover / Select 的 Portal 同属性容器）。
+ */
+
+.tl-root {
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  font-size: 14px;
+}
+
+/* ---------- 头部 ---------- */
+
+.tl-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tl-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.tl-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 9px;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.tl-logo-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.tl-heading-text {
+  min-width: 0;
+}
+
+.tl-heading-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tl-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.tl-subtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  opacity: 0.65;
+}
+
+.tl-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ---------- 进度 ---------- */
+
+.tl-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tl-progress-bar {
+  flex: 1 1 auto;
+  height: 6px;
+}
+
+.tl-progress-label {
+  flex: none;
+  font-size: 12px;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 新增表单 ---------- */
+
+.tl-composer-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* 标题输入框容器：Input 是普通函数组件、不转发 ref，聚焦靠容器查询，故需要一层真实元素 */
+.tl-composer-input {
+  display: flex;
+  flex: 1 1 220px;
+  min-width: 160px;
+}
+
+.tl-composer-input input {
+  width: 100%;
+}
+
+.tl-composer-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ---------- 工具栏 ---------- */
+
+.tl-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tl-filters {
+  flex: none;
+}
+
+.tl-filter-item {
+  gap: 6px;
+}
+
+.tl-filter-count {
+  font-size: 11px;
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}
+
+.tl-toolbar-right {
+  display: flex;
+  flex: 1 1 240px;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.tl-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 180px;
+  max-width: 320px;
+}
+
+.tl-search-icon {
+  position: absolute;
+  left: 8px;
+  width: 14px;
+  height: 14px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.tl-search-input {
+  padding-left: 26px;
+}
+
+.tl-search-clear {
+  position: absolute;
+  right: 2px;
+}
+
+.tl-sort-trigger {
+  flex: none;
+  min-width: 132px;
+}
+
+/* ---------- 时间轴（每天一列） ---------- */
+
+.tl-timeline-area {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+/* 包裹层：loading / 空态 / 时间轴三选一，内层撑满 */
+.tl-timeline-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+.tl-timeline {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  /* 左右各留出悬浮箭头的宽度，避免首/末列被箭头压住 */
+  padding: 2px 46px 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-padding: 0 46px;
+}
+
+/* 左右两侧的滚动箭头（悬浮在时间轴之上，垂直居中） */
+.tl-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  border-radius: 999px;
+  box-shadow: 0 2px 10px color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.tl-nav-prev {
+  left: 2px;
+}
+
+.tl-nav-next {
+  right: 2px;
+}
+
+.tl-nav-icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* ---------- 日期列 ---------- */
+
+.tl-col {
+  flex: 0 0 auto;
+  width: 268px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, currentColor 3%, transparent);
+  overflow: hidden;
+}
+
+.tl-col-today {
+  border-color: color-mix(in srgb, #2f6bff 50%, transparent);
+  background: color-mix(in srgb, #2f6bff 8%, transparent);
+}
+
+.tl-col-unscheduled {
+  width: 236px;
+}
+
+.tl-col-gap {
+  flex: 0 0 92px;
+  width: 92px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-style: dashed;
+  background: transparent;
+  opacity: 0.55;
+}
+
+.tl-col-gap-count {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tl-col-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.tl-col-head-main {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.tl-col-weekday {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tl-col-date {
+  font-size: 12px;
+  opacity: 0.65;
+  white-space: nowrap;
+}
+
+.tl-col-today-tag {
+  font-size: 11px;
+  line-height: 1.6;
+  padding: 0 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: color-mix(in srgb, #2f6bff 22%, transparent);
+}
+
+.tl-col-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+}
+
+.tl-col-count {
+  font-size: 11px;
+  opacity: 0.6;
+  padding: 0 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tl-col-add {
+  opacity: 0.55;
+}
+
+.tl-col:hover .tl-col-add {
+  opacity: 1;
+}
+
+.tl-col-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 6px;
+}
+
+.tl-col-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tl-col-empty {
+  margin: 0;
+  padding: 16px 6px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.5;
+  opacity: 0.45;
+}
+
+.tl-col-empty-hint {
+  display: block;
+  margin-top: 6px;
+  opacity: 0.8;
+}
+
+/* ---------- 单条待办 ---------- */
+
+.tl-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition: background-color 0.15s ease;
+}
+
+.tl-item:hover {
+  background: color-mix(in srgb, currentColor 6%, transparent);
+}
+
+.tl-item-overdue {
+  border-color: color-mix(in srgb, #e5484d 45%, transparent);
+}
+
+/* ---------- 勾选框 ----------
+ * 宿主的 Checkbox 把外观完全交给工具类（`dui:size-4` + `dui:border-input` + `dui:data-checked:*`），
+ * 于是有两个问题：
+ *   1) 未勾选时只有一根 1px 的 `--input` 浅灰边，浅色主题下叠在淡色列底上几乎看不见；尺寸又只有
+ *      `dui:size-4` 这一个来源，一旦它不生效就是 0×0 的隐形按钮；
+ *   2) 勾选态类名用的是 `data-checked`，而 Radix 实际发出的是 `data-state="checked"` → 勾上也不变色。
+ *
+ * 所以这里由插件接管这个控件的外观。用 !important 是必要的：本插件 CSS 经构建预设改写后整体落在
+ * `:where()` 里（特异度 0），而宿主工具类是 (0,1,0)，谁生效只取决于样式加载顺序 / 级联层 ——
+ * 对"必须一眼可见"的勾选框不能赌这个顺序。勾选态用 React 直接挂上的 `.tl-check-on`，
+ * 不依赖任何状态属性；同时把 `[data-state=checked]` / `[data-checked]` 一并覆盖，宿主改哪边都不失效。
+ */
+.tl-check {
+  box-sizing: border-box;
+  flex: none !important;
+  width: 20px !important;
+  height: 20px !important;
+  margin-top: 1px;
+  /* 未勾选：2px 实边 + 淡底，按主题文字色派生（亮色主题=深灰，暗色主题=浅灰），两种主题都清晰可辨 */
+  border: 2px solid color-mix(in srgb, currentColor 62%, transparent) !important;
+  border-radius: 6px !important;
+  background: color-mix(in srgb, currentColor 8%, transparent) !important;
+  color: #2f6bff;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+/* 悬停 / 行悬停时给出主色提示，明确"这里可以点" */
+.tl-check:hover,
+.tl-item:hover .tl-check:not(.tl-check-on) {
+  border-color: color-mix(in srgb, #2f6bff 75%, transparent) !important;
+  background: color-mix(in srgb, #2f6bff 12%, transparent) !important;
+}
+
+.tl-check:disabled {
+  cursor: not-allowed !important;
+  opacity: 0.5;
+}
+
+.tl-check svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 3;
+}
+
+.tl-check-on,
+.tl-check[data-state='checked'],
+.tl-check[data-checked] {
+  border-color: #2f6bff !important;
+  background: #2f6bff !important;
+  color: #ffffff !important;
+}
+
+.tl-check-on:hover,
+.tl-check[data-state='checked']:hover,
+.tl-check[data-checked]:hover {
+  border-color: #2456d8 !important;
+  background: #2456d8 !important;
+  color: #ffffff !important;
+}
+
+.tl-item-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tl-item-title {
+  line-height: 1.45;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.tl-item-done .tl-item-title {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+
+.tl-item-note {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.45;
+  opacity: 0.62;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.tl-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.tl-item-actions {
+  display: flex;
+  flex: none;
+  gap: 2px;
+  opacity: 0.45;
+  transition: opacity 0.15s ease;
+}
+
+.tl-item:hover .tl-item-actions,
+.tl-item:focus-within .tl-item-actions {
+  opacity: 1;
+}
+
+/* 列内更紧凑一些（列宽 268px，要留出正文空间） */
+.tl-col-list .tl-item {
+  padding: 8px;
+  gap: 8px;
+}
+
+/* ---------- 内联编辑 ---------- */
+
+.tl-item-editing {
+  padding: 0;
+}
+
+.tl-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, currentColor 16%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, currentColor 4%, transparent);
+}
+
+.tl-col-list .tl-editor {
+  padding: 8px;
+}
+
+.tl-editor-title {
+  font-weight: 500;
+}
+
+.tl-editor-invalid {
+  border-color: #e5484d;
+}
+
+.tl-editor-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.tl-editor-note {
+  resize: vertical;
+  min-height: 48px;
+}
+
+.tl-editor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.tl-editor-hint {
+  margin-right: auto;
+  font-size: 12px;
+  color: #e5484d;
+}
+
+/* ---------- 日期选择器 ---------- */
+
+.tl-date-trigger {
+  max-width: 100%;
+}
+
+.tl-date-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tl-date-trigger-empty .tl-date-text {
+  opacity: 0.7;
+}
+
+.tl-date-popover {
+  width: auto;
+}
+
+.tl-date-popover-title {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+.tl-date-quick {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+}
+
+/* ---------- 空态 / 加载 / 日志 ---------- */
+
+.tl-center {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 12px;
+  opacity: 0.85;
+}
+
+.tl-empty {
+  padding: 28px 12px;
+  text-align: center;
+}
+
+.tl-empty-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.tl-logs {
+  flex: 0 0 auto;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+
+/* ---------- 小图标 ---------- */
+
+.tl-icon-sm {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+.tl-icon-xs {
+  width: 12px;
+  height: 12px;
+  flex: none;
+}
+
+.tl-muted {
+  opacity: 0.6;
+}

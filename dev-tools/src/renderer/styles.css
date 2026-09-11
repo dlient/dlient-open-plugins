@@ -1,0 +1,1460 @@
+/* 开发环境插件运行时 —— 样式
+ *
+ * 视觉稿：plugin-html/modal/src/dev-tools/{tokens,shell,workbench,boot,preview,logs,settings}.css
+ *
+ * 与稿的差异（对应本次改造的四条约束）：
+ *   1. 预览页不再自绘模拟画布（.pdr-canvas / .pdr-sheet / .pdr-chart 全部删除），
+ *      改为 PluginView 全幅承载真实插件，.pdr-preview 只做占满与裁剪。
+ *   2. 日志页不再自绘日志行（.pdr-logline / .pdr-logs__bar 等全部删除），
+ *      改为 LogViewer 自带工具栏与滚动区，.pdr-logs 只做外层布局。
+ *   3. 「编辑 / AI」相关样式（.pdr-aitoggle）已删除。
+ *   4. 稿中的标题栏 / 活动栏 / 内容列（.pdr-titlebar / .pdr-rail / .pdr-main / .pdr-column）
+ *      属宿主窗口壳职责，插件内不重复实现，故不收录。
+ *
+ * 所有 --pdr-* 仅做角色映射，值取自宿主 tokens.css 的 --dlient-* 语义 token，由宿主主题（:root.dark）驱动。
+ */
+
+/* ============================================================
+ * 设计令牌
+ * ============================================================ */
+
+.pdr {
+  /* —— 背景层级 —— */
+  --pdr-bg-body: var(--dlient-bg-color-container); /* 主体 / 内容区 */
+  --pdr-bg-chrome: var(--dlient-bg-color-secondarycontainer); /* Tab 栏 */
+  --pdr-bg-panel: var(--dlient-bg-color-page); /* 卡片 / 面板 / 输入框 */
+  --pdr-bg-select: var(--dlient-bg-color-component); /* 选中态 / 徽标底 */
+  --pdr-bg-step-active: var(--dlient-brand-color-light); /* 步骤进行中高亮 */
+  --pdr-bg-danger: var(--dlient-error-color-light); /* 步骤失败底色 */
+
+  /* —— 文字层级 —— */
+  --pdr-text-1: var(--dlient-text-color-primary);
+  --pdr-text-2: var(--dlient-text-color-secondary);
+  --pdr-text-3: var(--dlient-text-color-placeholder);
+  --pdr-text-4: var(--dlient-text-color-disabled);
+
+  /* —— 描边 —— */
+  --pdr-border: var(--dlient-border-level-1-color);
+  --pdr-border-strong: var(--dlient-border-level-2-color);
+
+  /* —— 主色与状态 —— */
+  --pdr-brand: var(--dlient-brand-color);
+  --pdr-brand-soft: var(--dlient-brand-color-hover);
+  --pdr-success: var(--dlient-success-color);
+  --pdr-warning: var(--dlient-warning-color);
+  --pdr-danger: var(--dlient-error-color);
+
+  /* —— 字体 —— */
+  --pdr-font: Inter, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --pdr-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* —— 栏高 —— */
+  --pdr-h-tab: 38px;
+  --pdr-h-action: 42px;
+}
+
+/* ============================================================
+ * 外壳
+ * ============================================================ */
+
+.pdr {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background-color: var(--pdr-bg-body);
+  color: var(--pdr-text-1);
+  font-family: var(--pdr-font);
+  font-size: 12px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.pdr *,
+.pdr *::before,
+.pdr *::after {
+  box-sizing: border-box;
+}
+
+/* ============ Tab 栏（@dlient/ui primitives Tabs 承载） ============
+ *
+ * 结构：.pdr-tabs > Tabs（.dui-tabs > .dui-tabs__nav > .dui-tabs__tab）。
+ * Tab 项的激活态 / hover / 关闭按钮由 @dlient/ui primitives 提供，这里只做：
+ *   1. 收口：dui-tabs 纵向 padding + body 字号会把导航撑出 38px 设计高，压回容器高；
+ *   2. Tab 项内自制 label（.pdr-tabs__home / .pdr-tabs__item）的布局与配色。 */
+
+.pdr-tabs {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  height: var(--pdr-h-tab);
+  padding-right: var(--dlient-spacing-md);
+  background-color: var(--pdr-bg-chrome);
+}
+
+/* —— 收口：Tab 导航压回设计高 —— */
+
+.pdr-tabs .dui-tabs__nav {
+  height: var(--pdr-h-tab);
+}
+
+.pdr-tabs .dui-tabs__tab {
+  align-items: center;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* —— 操作台 Tab（首个） —— */
+
+.pdr-tabs__home {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  width: 46px;
+  height: 100%;
+  border: none;
+  background-color: transparent;
+  color: var(--pdr-text-3);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+/* —— 插件 Tab —— */
+
+.pdr-tabs__item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  align-self: stretch;
+  padding: 0;
+  border: none;
+  background-color: transparent;
+  color: var(--pdr-text-2);
+  font-size: 12px;
+}
+
+.pdr-tabs__name {
+  white-space: nowrap;
+}
+
+/* PluginIcon 的尺寸由 size prop 以内联样式给出，这里只补底色与圆角。 */
+.pdr-tabs__badge {
+  flex-shrink: 0;
+  border-radius: 4px;
+  background-color: var(--pdr-bg-select);
+}
+
+/* 缺图标时的兜底首字母字号写在 PluginIcon 内层 span 的内联样式上（size*0.36，
+ * 15px → 5.4px 不可读），只能命中内层并用 !important 覆写；
+ * 有图标时内层是 mask span / img，font-size 对其无影响。 */
+.pdr-tabs__badge > span {
+  font-size: 9px !important;
+  font-weight: 700;
+}
+
+/* line 模式：激活 tab 文字提亮（内层 label 有自定颜色，按 data-slot/data-state 定位选中项） */
+.pdr-tabs [data-slot='tabs-trigger'][data-state='active'] .pdr-tabs__item,
+.pdr-tabs [data-slot='tabs-trigger'][data-state='active'] .pdr-tabs__home {
+  color: var(--pdr-text-1);
+}
+
+/* 顶部 scrollable tabs：滚动容器填满 tab 栏高度（保留通高外观）。
+   scrollable 外层是 items-center 行，需给中间 relative 包装层也补 100% 高，否则不拉伸 */
+.pdr-tabs [data-slot='tabs'] > div {
+  height: 100%;
+}
+.pdr-tabs [data-slot='tabs'] > div > div {
+  height: 100%;
+}
+.pdr-tabs [data-slot='tabs-list-scroller'] {
+  height: 100%;
+}
+/* 顶部 line 模式箭头背景贴合 tab 栏底色（默认 bg-background 与栏底色不一致） */
+.pdr-tabs [data-slot='tabs-list-scroll-left'],
+.pdr-tabs [data-slot='tabs-list-scroll-right'] {
+  background-color: var(--pdr-bg-chrome);
+}
+
+/* ============ 操作区 ============ */
+
+.pdr-actionbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: var(--pdr-h-action);
+  border-bottom: 1px solid var(--dl-fill-1);
+  padding: 0 14px 0 16px;
+}
+
+.pdr-actionbar__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 图标按钮（刷新 / 打包 / AI 开关）：默认填充 --dl-fill-0，选中态用主色 */
+.pdr-iconbtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 9px;
+  border: none;
+  border-radius: 6px;
+  background-color: var(--dl-fill-0);
+  color: var(--pdr-text-2);
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 120ms ease, background-color 120ms ease;
+}
+/* 带文字标签的按钮（AI开发） */
+.pdr-iconbtn--ai {
+  font-weight: 500;
+}
+
+.pdr-iconbtn:hover:not(:disabled) {
+  color: var(--pdr-text-1);
+}
+
+.pdr-iconbtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pdr-iconbtn.is-spinning svg {
+  animation: pdr-spin 700ms linear infinite;
+}
+
+@keyframes pdr-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 启动中的状态标识（替代视图切换） */
+.pdr-bootflag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--pdr-text-2);
+}
+
+.pdr-bootflag__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--pdr-brand-soft);
+}
+
+/* ============ 内容区通用 ============ */
+
+.pdr-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background-color: var(--pdr-bg-body);
+}
+
+/* 三视图 pane 全部保持挂载：切走仅 CSS 隐藏（预览 PluginView 不卸载、不重载） */
+/* 每个插件 tab 一个 tabbody（常驻挂载，非 active 由内联 display:none 隐藏）；
+   必须参与 flex 高度链（flex:1 + column），否则打断百分比高度（webview 高度塌陷为 0） */
+.pdr-tabbody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pdr-viewpane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.pdr-viewpane.is-hidden {
+  display: none;
+}
+
+/* ============ 内容区：预览页（分栏）与 日志/设置页（整宽）互斥显示 ============ */
+.pdr-pages {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* 预览页与整宽页都常驻挂载：只切换显隐，保证预览 PluginView / 内嵌 dsh Chat 不重载 */
+.pdr-preview-page,
+.pdr-plain-page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.pdr-preview-page.is-hidden,
+.pdr-plain-page.is-hidden {
+  display: none;
+}
+/* 预览页内层 Resizable 面板组（横向分栏，分隔条可拖动改宽度） */
+.pdr-preview-page__group {
+  flex: 1;
+  min-width: 0;
+}
+/* 预览面板（Resizable 面板内层）：各 tab 预览 pane 常驻，非 active 用 display 隐藏 */
+.pdr-preview-panel {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* AI 面板（Resizable 面板的内层容器；折叠即宽度 0，组件不卸载） */
+.pdr-ai {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--pdr-bg-panel);
+}
+/* 分隔条在 AI 面板不可见时一并隐藏（两类名优先级高于 ui 的 dui:flex） */
+.pdr-ai__handle.is-hidden {
+  display: none;
+}
+/* AI 面板内的 PluginView 撑满（其外层 div 自带 height:100%） */
+.pdr-ai > * {
+  flex: 1;
+  min-height: 0;
+}
+/* 图标按钮激活态（AI 面板开关）：主色底 + 主色前景 */
+.pdr-iconbtn.is-active {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.pdr-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.pdr-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.pdr-scroll::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background-color: var(--dlient-bg-color-component-active);
+}
+
+.pdr-scroll::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+.pdr-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 64px 0;
+  color: var(--pdr-text-3);
+  font-size: 12px;
+}
+
+/* 文字按钮（卡片操作 / 启动页取消） */
+.pdr-textbtn {
+  padding: 6px 11px;
+  border: none;
+  border-radius: 5px;
+  background-color: transparent;
+  color: var(--pdr-text-2);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.pdr-textbtn:hover {
+  background-color: var(--pdr-bg-select);
+  color: var(--pdr-text-1);
+}
+
+/* ============================================================
+ * 操作台（开发中的插件）
+ * ============================================================ */
+
+.pdr-work__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 28px 32px 20px;
+}
+
+.pdr-work__headtext {
+  min-width: 0;
+}
+
+.pdr-work__title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--pdr-text-1);
+}
+
+.pdr-work__sub {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--pdr-text-3);
+}
+
+.pdr-work__headops {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.pdr-work__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  gap: 16px;
+  padding: 0 32px 24px;
+}
+
+/* —— 插件卡片 —— */
+
+.pdr-card {
+  display: flex;
+  flex-direction: column;
+  padding: 18px 18px 16px;
+  border-radius: 8px;
+  background-color: var(--dl-fill-0);
+  transition: background-color 120ms ease;
+}
+
+.pdr-card:hover {
+  background-color: var(--dlient-bg-color-container-hover);
+}
+
+.pdr-card__top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* 尺寸由 PluginIcon 的 size prop 内联给出（36px），这里只补底色与圆角 */
+.pdr-card__logo {
+  border-radius: 8px;
+  color: var(--pdr-brand);
+}
+
+/* 兜底首字母：覆写内层 span 的内联字号（36*0.36≈13px → 15px），见 .pdr-tabs__badge 的说明 */
+.pdr-card__logo > span {
+  font-size: 15px !important;
+  font-weight: 700;
+}
+
+.pdr-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+}
+
+.pdr-card__nameline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pdr-card__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pdr-text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pdr-card__slug {
+  font-family: var(--pdr-mono);
+  font-size: 11px;
+  color: var(--pdr-text-4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pdr-card__summary {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--pdr-text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* —— 运行状态 —— */
+
+.pdr-state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--pdr-text-4);
+}
+
+.pdr-state__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.pdr-state--running {
+  color: var(--pdr-success);
+}
+
+.pdr-state--starting {
+  color: var(--pdr-brand-soft);
+}
+
+.pdr-state--stopped {
+  color: var(--pdr-warning);
+}
+
+.pdr-state--failed {
+  color: var(--pdr-danger);
+}
+
+/* —— 卡片底部（操作区右对齐：打开 + 删除） —— */
+
+.pdr-card__bottom {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.pdr-card__ops {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.pdr-card__more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 5px;
+  background-color: transparent;
+  color: var(--pdr-text-3);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.pdr-card__more:hover {
+  background-color: var(--pdr-bg-select);
+  color: var(--pdr-text-1);
+}
+
+/* ============================================================
+ * 启动页（预览环境未就绪）
+ * ============================================================ */
+
+.pdr-boot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+  padding: 40px 24px;
+}
+
+.pdr-boot__card {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 520px;
+  max-width: 100%;
+  padding: 28px 26px 22px;
+  border: 1px solid var(--pdr-border);
+  border-radius: 10px;
+  background-color: var(--pdr-bg-panel);
+}
+
+.pdr-boot__head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pdr-boot__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--pdr-text-1);
+}
+
+.pdr-boot__sub {
+  font-size: 11px;
+  color: var(--pdr-text-3);
+}
+
+.pdr-boot__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pdr-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background-color: var(--dl-fill-0);
+}
+
+.pdr-step--running {
+  border-color: var(--pdr-brand);
+  background-color: var(--pdr-bg-step-active);
+}
+
+.pdr-step--pending {
+  opacity: 0.55;
+}
+
+.pdr-step--error {
+  border-color: var(--pdr-danger);
+  background-color: var(--pdr-bg-danger);
+}
+
+.pdr-step__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+.pdr-step__icon--done {
+  color: var(--pdr-success);
+}
+
+.pdr-step__icon--running {
+  color: var(--pdr-brand-soft);
+}
+
+.pdr-step__icon--running svg {
+  animation: pdr-spin 800ms linear infinite;
+}
+
+.pdr-step__icon--pending {
+  color: var(--pdr-text-4);
+}
+
+.pdr-step__body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.pdr-step__line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pdr-step__title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pdr-text-1);
+}
+
+.pdr-step__cost {
+  font-family: var(--pdr-mono);
+  font-size: 10px;
+  color: var(--pdr-text-4);
+}
+
+.pdr-step__desc {
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--pdr-text-3);
+}
+
+.pdr-step__output {
+  font-family: var(--pdr-mono);
+  font-size: 10px;
+  color: var(--pdr-text-4);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pdr-boot__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+/* Node.js 环境门禁：检测中 Loading 居中 */
+.pdr-loading {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 0;
+}
+
+.pdr-boot__hint {
+  font-size: 11px;
+  color: var(--pdr-text-4);
+}
+
+/* ============================================================
+ * 预览页（PluginView 全幅承载）
+ * ============================================================ */
+
+.pdr-preview {
+  position: relative;
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: auto;
+  background-color: var(--pdr-bg-body);
+}
+
+/* 预览挂载容器（PluginView）绝对铺满：即使外层某层 100% 高度链被破坏，
+   预览内容再高也只能在 .pdr-preview 内被 overflow:hidden 裁剪，无法撑大父容器
+   引发 .dl-page 等外层页面滚动条。 */
+.pdr-preview > * {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+}
+
+/* worker 类型无界面：预览 pane 占位（不加载不存在的 remoteEntry） */
+.pdr-preview__empty {
+  position: static;
+  height: auto;
+  width: auto;
+  align-self: center;
+  margin: 0 auto;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--pdr-text-4);
+  text-align: center;
+  padding: 24px;
+}
+
+/* ============================================================
+ * 日志页（LogViewer 承载）
+ * ============================================================ */
+
+.pdr-logs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+
+.pdr-logs__tip {
+  flex-shrink: 0;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background-color: var(--pdr-bg-panel);
+  color: var(--pdr-text-3);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.pdr-logs__viewer {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ============================================================
+ * 设置页（左侧导航 + 右侧内容区，每区域独立保存/重置）
+ * ============================================================ */
+
+.pdr-set {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  flex: 1;
+  min-height: 0;
+}
+
+/* —— 左侧导航 —— */
+
+.pdr-set__sidebar {
+  grid-row: 1;
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 8px;
+  border-right: 1px solid var(--pdr-border);
+  background-color: var(--pdr-bg-chrome);
+  overflow-y: auto;
+}
+
+.pdr-set__navitem {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  background-color: transparent;
+  color: var(--pdr-text-2);
+  font-family: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.pdr-set__navitem:hover {
+  background-color: var(--pdr-bg-panel);
+  color: var(--pdr-text-1);
+}
+
+.pdr-set__navitem.is-active {
+  background-color: var(--pdr-bg-select);
+  color: var(--pdr-brand);
+  font-weight: 500;
+}
+
+.pdr-set__navitem--sub {
+  padding-left: 24px;
+  font-size: 11px;
+}
+
+.pdr-set__navgroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
+}
+
+.pdr-set__navgrouptitle {
+  padding: 6px 12px 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--pdr-text-4);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* —— 右侧内容区 —— */
+
+.pdr-set__content {
+  grid-row: 1;
+  grid-column: 2;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.pdr-set__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 20px 28px 32px;
+}
+
+.pdr-set__head {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.pdr-set__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--pdr-text-1);
+}
+
+.pdr-set__sub {
+  font-size: 11px;
+  color: var(--pdr-text-1);
+  word-break: break-all;
+}
+
+/* 加载 / 错误态 */
+.pdr-set__state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  color: var(--pdr-text-3);
+  font-size: 12px;
+}
+
+.pdr-set__error {
+  max-width: 460px;
+  text-align: center;
+  color: var(--pdr-danger);
+  font-size: 12px;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+/* —— 分组 —— */
+
+.pdr-set__group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pdr-set__grouptitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pdr-text-1);
+}
+
+/* —— 字段 —— */
+
+.pdr-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.pdr-field__label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--pdr-text-2);
+}
+
+.pdr-field__labelline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pdr-field__hint {
+  font-size: 10px;
+  color: var(--pdr-text-2);
+}
+
+/* —— 图标选择器（点击图片上传） —— */
+
+.pdr-set__iconpicker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  border: 1px dashed var(--pdr-border-strong);
+  border-radius: 8px;
+  background-color: var(--pdr-bg-panel);
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.pdr-set__iconpicker:hover {
+  border-color: var(--pdr-brand);
+  background-color: var(--pdr-bg-select);
+}
+
+.pdr-set__iconimg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 8px;
+}
+
+.pdr-set__iconempty {
+  font-size: 11px;
+  color: var(--pdr-text-4);
+}
+
+/* —— 插件类型卡片（一行 2 个，点击切换选中） —— */
+
+.pdr-set__typecards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.pdr-set__typecard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--pdr-border);
+  border-radius: 8px;
+  background-color: var(--pdr-bg-panel);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.pdr-set__typecard:hover {
+  border-color: var(--pdr-border-strong);
+}
+
+.pdr-set__typecard.is-active {
+  border-color: var(--pdr-brand);
+  background-color: var(--pdr-bg-step-active);
+}
+
+.pdr-set__typename {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pdr-text-1);
+}
+
+.pdr-set__typecard.is-active .pdr-set__typename {
+  color: var(--pdr-brand);
+}
+
+.pdr-set__typedesc {
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--pdr-text-1);
+}
+
+/* —— 适用平台：一行 3 列居中，点击 x64/ARM64 标签增删组合值（win32.x64 等） —— */
+
+.pdr-set__platformgrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.pdr-set__platformcol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 12px;
+  border: 1px solid var(--pdr-border);
+  border-radius: 8px;
+  background-color: var(--pdr-bg-panel);
+  transition: border-color 120ms ease;
+}
+
+.pdr-set__platformcol.is-active {
+  border-color: var(--pdr-brand);
+}
+
+.pdr-set__platformicon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: var(--pdr-text-2);
+}
+
+.pdr-set__platformname {
+  font-size: 12px;
+  color: var(--pdr-text-1);
+}
+
+.pdr-set__archrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.pdr-set__archchip {
+  padding: 3px 18px;
+  border: 1px solid var(--pdr-border);
+  border-radius: 6px;
+  background-color: var(--dl-fill-1);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.pdr-set__archchip:hover {
+  border-color: var(--pdr-border-strong);
+}
+
+.pdr-set__archchip.is-on {
+  background-color: var(--pdr-brand);
+  border-color: var(--pdr-brand);
+  color: var(--dlient-text-color-anti);
+}
+
+/* ============================================================
+ * 上传页（600px 居中：表单 + 底部提交）
+ * ============================================================ */
+
+.pdr-upload {
+  width: 600px;
+  max-width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px 24px 32px;
+}
+
+.pdr-upload__foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.pdr-upload__hint {
+  flex: 1;
+  font-size: 11px;
+  color: var(--pdr-text-3);
+}
+
+/* ============================================================
+ * 创建插件弹框（modal.dialog）
+ * ============================================================ */
+
+.pdr-cdlg__head {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.pdr-cdlg__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--pdr-text-1);
+}
+
+.pdr-cdlg__desc {
+  font-size: 12px;
+  color: var(--pdr-text-3);
+  line-height: 1.6;
+}
+
+.pdr-cdlg__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 30px;
+}
+
+.pdr-cdlg__error {
+  padding: 8px 10px;
+  border-radius: 6px;
+  background-color: var(--dlient-error-color-light);
+  color: var(--dlient-error-color);
+  font-size: 12px;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.pdr-cdlg__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* —— Milkdown 编辑器容器 —— */
+
+.pdr-set__mdwrap {
+  border: 1px solid var(--pdr-border);
+  border-radius: 8px;
+  background-color: var(--pdr-bg-panel);
+  min-height: 240px;
+  max-height: 520px;
+  overflow: auto;
+}
+
+.pdr-set__mdloading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+}
+
+/* 区域底部操作栏（保存 + 重置） */
+.pdr-set__areafoot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--pdr-border);
+  margin-top: 8px;
+}
+
+/* @atomic-editor/editor：圆角/边框/高度由 MarkdownEditor 内联样式承载（与宿主 dui 控件观感对齐） */
+
+/* —— 多语言设置头部（标题 + 使用默认按钮） —— */
+
+.pdr-set__localehead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pdr-set__localeheadtext {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+
+
+.pdr .dui-radio,
+.pdr .dui-radio-button {
+  font-size: var(--dlient-font-size-caption);
+}
+
+.pdr .dui-radio-group {
+  display: flex;
+  align-items: center;
+  gap: var(--dlient-spacing-sm);
+}
+
+.pdr .atomic-cm-editor .cm-scroller{
+  padding:15px
+}
+
+.atomic-cm-editor{
+  --atomic-editor-body-size: 14px;
+  --atomic-editor-body-leading:1.7;
+}
+
+/* ============================================================
+ * 上传分步弹框（pdr-upload-steps：校验 → 登录/组织 → 构建 → 打包 → 上传）
+ * ============================================================ */
+
+.pdr-upload-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 6px 2px;
+}
+
+.pdr-upload-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--pdr-text-2);
+}
+
+.pdr-upload-step__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--pdr-border-strong);
+  flex: none;
+}
+
+.pdr-upload-step--running .pdr-upload-step__dot {
+  background-color: var(--pdr-brand);
+  animation: pdr-upload-pulse 1s ease-in-out infinite;
+}
+
+.pdr-upload-step--done .pdr-upload-step__dot {
+  background-color: var(--pdr-success);
+}
+
+.pdr-upload-step--error .pdr-upload-step__dot {
+  background-color: var(--pdr-danger);
+}
+
+.pdr-upload-step--error .pdr-upload-step__label {
+  color: var(--pdr-danger);
+}
+
+.pdr-upload-step__label {
+  font-weight: 500;
+  color: var(--pdr-text-1);
+}
+
+.pdr-upload-step__phase {
+  font-size: 12px;
+  color: var(--pdr-text-3);
+}
+
+.pdr-upload-step__err {
+  font-size: 12px;
+  color: var(--pdr-danger);
+  word-break: break-all;
+}
+
+.pdr-upload-step-done {
+  margin-top: 4px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pdr-success);
+}
+
+@keyframes pdr-upload-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* ============================================================
+ * 发布进度弹框（Upload.tsx 通用；modal.dialog body，非 .pdr 作用域 →
+ * 直接用宿主 tokens 的 --dlient-*，不依赖 .pdr 角色映射）
+ * ============================================================ */
+
+.df-flow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 2px 6px 6px;
+  color: var(--dlient-text-color-primary, #333);
+}
+
+.df-flow__loading {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.df-flow__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.df-flow__row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 30px;
+  font-size: 13px;
+}
+
+.df-flow__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.df-flow__label {
+  line-height: 1.4;
+}
+
+/* 等待中：文字浅色 */
+.df-flow__row--pending {
+  color: var(--dlient-text-color-placeholder, #999);
+}
+
+/* 进行中 / 成功：主题色 */
+.df-flow__row--running,
+.df-flow__row--done {
+  color: var(--dlient-brand-color, #2f6bff);
+}
+
+/* 失败：error 色 */
+.df-flow__row--error {
+  color: var(--dlient-error-color, #d54941);
+}
+
+.df-flow__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  opacity: 0.55;
+}
+
+.df-flow__spin {
+  display: inline-flex;
+}
+
+.df-flow__loader {
+  animation: df-flow-spin 1s linear infinite;
+}
+
+@keyframes df-flow-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.df-flow__error {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--dlient-error-color-light, rgba(213, 73, 65, 0.12));
+  color: var(--dlient-error-color, #d54941);
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-all;
+  text-align: left;
+  max-height: 110px;
+  overflow: auto;
+}
+
+.df-flow__foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 36px;
+  padding-top: 8px;
+  width: 100%;
+}
+

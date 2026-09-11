@@ -1,0 +1,65 @@
+# User patch layer for the `dlient-chat` profile: a single-column chat surface.
+#
+# This profile reuses the whole `dsh web` bundle (dsh-base + dsh-web-app) and
+# then customises it here:
+#   - the HTTP listen port defaults to 3081 (the web bundle defaults to 3080);
+#   - the browser surface is kept (single-column chat UI comes from the client
+#     bundle inserted at the bottom);
+#   - the default access mode is the `standard` agent preset.
+#
+# A patch entry replaces the targeted row's WHOLE config, so each row below
+# restates every key it owns. `--port` / `--host` / `--no-open` /
+# `--trusted-host` are parsed by the shared web-startup plugin (any
+# `dsh --profile <name>` invocation), so `dsh --profile dlient-chat --port 3111`
+# just works.
+
+# ── chat-specific surface values ────────────────────────────────────────────
+
+# Serve on 3081 by default. `--port` from the launcher still wins.
+- id: webserver
+  config:
+    host: !!js ctx.webStartup.host ?? '127.0.0.1'
+    port: !!js ctx.webStartup.port ?? 3081
+
+# Keep the web glue (dist serving, LAN trust, URL line, browser handoff).
+- id: web-runtime
+  config:
+    openBrowser: !!js ctx.webStartup.openBrowser
+    printUrl: true
+    surfaceContext: true
+    trustedHosts: !!js ctx.webStartup.trustedHosts
+
+# The web bundle already sets the roster default to `standard`; restate it so
+# the chat surface's default access mode is explicit. This is now the ONLY mode
+# knob this profile sets: the browser half shows the product's own hero
+# agent-preset chip (blank sessions only) over the full roster the roots below
+# supply — `standard`, `code` (PTC), `minimal`, `cordis`, plus anything under
+# `$DSH_HOME/.agent-presets`. Narrowing that list would take a host-side change
+# here (only `roots` + `includeUserRoot` are configurable; there is no per-preset
+# allowlist), not a client-side filter.
+- id: agent-presets
+  config:
+    default: standard
+
+# ── the chat startup (adds --workspace) ─────────────────────────────────────
+#
+# Replace the shared web-startup with the chat startup, which parses the same
+# web flag family (--host / --port / --no-open / --trusted-host) AND adds
+# --workspace <path>. It publishes the SAME `webStartup` service (plus a
+# `workspace` field), so the webserver / web-runtime rows below keep working.
+# (The patch mechanism refuses a `name` change on an existing row, so we
+# disable the shipped row and insert our own providing that service.)
+- id: web-startup
+  disabled: true
+
+- insert:
+    - id: chat-startup
+      name: '@dlient/dsh-chat-ui/startup'
+
+    # The chat UI row: its host half registers `--workspace` through the host
+    # workspaceRegistry (which persists the workspace as a real group); its
+    # `./client` export is the browser bundle (sidebar collapse, the product's
+    # own hero agent-preset chip kept as the mode selector, and
+    # window.setTheme / setLanguage, ?workspace= / ?theme= / ?language=).
+    - id: chat-ui
+      name: '@dlient/dsh-chat-ui'

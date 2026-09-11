@@ -1,0 +1,79 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schemas/tools.json",
+  "name": "todo-list",
+  "description": "Local day-by-day todo timeline for dlient: create, schedule, update, complete and delete tasks with start/due dates and priorities. All data is stored in the plugin's own data folder.",
+  "tools": [
+    {
+      "name": "todo-list.state",
+      "description": "Read every todo plus aggregate stats (total / active / completed / overdue / dueToday / todayActive / unscheduled / percent). No arguments.",
+      "inputSchema": { "type": "object", "properties": {}, "required": [] },
+      "permissions": []
+    },
+    {
+      "name": "todo-list.add",
+      "description": "Create a todo. `startAt` decides which day of the timeline it lands on (defaults to today). Returns the full updated state.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string", "description": "Task title (required, max 200 chars)" },
+          "startAt": {
+            "type": ["number", "null"],
+            "description": "Start date as a local-midnight epoch-ms timestamp; omitted = today, null = unscheduled"
+          },
+          "priority": { "type": "string", "enum": ["high", "normal", "low"], "description": "Defaults to normal" },
+          "dueAt": { "type": ["number", "null"], "description": "Due date as a local-midnight epoch-ms timestamp" },
+          "note": { "type": "string", "description": "Optional note (max 1000 chars)" }
+        },
+        "required": ["title"]
+      },
+      "permissions": []
+    },
+    {
+      "name": "todo-list.update",
+      "description": "Patch an existing todo (only the provided fields change), including moving it to another day via `startAt`. Returns the full updated state.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "Todo id" },
+          "title": { "type": "string" },
+          "note": { "type": "string" },
+          "priority": { "type": "string", "enum": ["high", "normal", "low"] },
+          "startAt": { "type": ["number", "null"], "description": "Start date; null moves it to the unscheduled column" },
+          "dueAt": { "type": ["number", "null"] },
+          "done": { "type": "boolean" }
+        },
+        "required": ["id"]
+      },
+      "permissions": []
+    },
+    {
+      "name": "todo-list.toggle",
+      "description": "Complete / reopen a todo. Omit `done` to flip the current value. Returns the full updated state.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "Todo id" },
+          "done": { "type": "boolean", "description": "Target state; omitted = flip" }
+        },
+        "required": ["id"]
+      },
+      "permissions": []
+    },
+    {
+      "name": "todo-list.remove",
+      "description": "Delete one todo by id. Returns the full updated state.",
+      "inputSchema": {
+        "type": "object",
+        "properties": { "id": { "type": "string", "description": "Todo id" } },
+        "required": ["id"]
+      },
+      "permissions": []
+    },
+    {
+      "name": "todo-list.clearCompleted",
+      "description": "Delete every completed todo at once. Returns the full updated state.",
+      "inputSchema": { "type": "object", "properties": {}, "required": [] },
+      "permissions": []
+    }
+  ]
+}

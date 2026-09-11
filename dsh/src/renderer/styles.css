@@ -1,0 +1,33 @@
+/* dsh 样式：颜色/描边全部引用 @dlient-open/ui tokens.css 的 --dlient-* 语义变量
+   （宿主全局注入，亮/暗随宿主 .dark / [theme-mode=dark] 自动切换；无 tdesign / tailwind 依赖）。 */
+
+.dsh-root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  color: var(--dlient-text-color-primary);
+  font-family: "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+}
+
+.dsh-body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.dsh-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+}
+.dsh-empty-sub {
+  font-size: 13px;
+  color: var(--dlient-text-color-secondary);
+  max-width: 480px;
+}
