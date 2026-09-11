@@ -17,6 +17,19 @@
 - [ ] `docs` — documentation only
 - [ ] `chore` — tooling / dependencies / CI / housekeeping
 
+## Adding a new plugin?
+
+Only for a brand-new plugin — leave the unticked list above alone and name the plugin here instead.
+Skip this whole section when changing an existing plugin.
+
+- [ ] Directory name equals `dlient.id`, and the id is lowercase `a-z` / `0-9` / `-` only
+- [ ] `package-lock.json` is committed (CI installs with `npm ci`)
+- [ ] `"typecheck": "tsc --noEmit"` exists in the plugin's `package.json`
+- [ ] `README.md` + `README.cn.md` and `LICENSE` are included
+- [ ] A row was added to the plugin tables in the root `README.md` and `README.cn.md`
+- [ ] `dlient.permissions` lists only what the plugin actually uses
+- [ ] `npm ci && npm run typecheck && npm run build` passes in the new plugin directory
+
 ## Checklist
 
 - [ ] `npm ci && npm run typecheck && npm run build` passes in every affected plugin

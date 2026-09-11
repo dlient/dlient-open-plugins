@@ -14,15 +14,47 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Plugins are discovered, not hardcoded: any top-level directory whose package.json
+  # carries a `dlient` manifest is a plugin. Adding a plugin therefore needs no CI
+  # change — and, more importantly, a new plugin cannot slip through unchecked.
+  discover:
+    name: discover plugins
+    runs-on: ubuntu-latest
+    outputs:
+      plugins: ${{ steps.list.outputs.plugins }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: List plugin directories
+        id: list
+        run: |
+          node -e '
+            const fs = require("node:fs")
+            const dirs = fs
+              .readdirSync(".")
+              .filter((name) => {
+                try {
+                  return Boolean(JSON.parse(fs.readFileSync(`${name}/package.json`, "utf8")).dlient)
+                } catch {
+                  return false
+                }
+              })
+              .sort()
+            console.log(`discovered plugins: ${dirs.join(", ") || "(none)"}`)
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `plugins=${JSON.stringify(dirs)}\n`)
+          '
+
   # Each plugin is a self-contained npm project (own manifest + lockfile), so the
   # checks run per plugin directory instead of from the repository root.
   check:
     name: check (${{ matrix.plugin }})
+    needs: discover
+    if: needs.discover.outputs.plugins != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        plugin: [dev-tools, dsh, todo-list]
+        plugin: ${{ fromJSON(needs.discover.outputs.plugins) }}
     defaults:
       run:
         working-directory: ${{ matrix.plugin }}
@@ -45,15 +77,15 @@ jobs:
         run: npm run build
 
   # Stable check name for the branch ruleset: matrix job names change whenever a
-  # plugin is added, and a skipped matrix leg would never report a status.
+  # plugin is added or removed, and a skipped matrix leg would never report a status.
   ci-ok:
     name: ci-ok
-    needs: [check]
+    needs: [discover, check]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Verify all plugin checks passed
-        if: needs.check.result != 'success'
+        if: needs.discover.result != 'success' || needs.check.result == 'failure' || needs.check.result == 'cancelled'
         run: |
-          echo "check job result: ${{ needs.check.result }}"
+          echo "discover: ${{ needs.discover.result }} / check: ${{ needs.check.result }}"
           exit 1

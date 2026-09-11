@@ -70,6 +70,41 @@ i18n and theming. That makes a few things review-critical:
 - **Manifest.** `dlient.*` lives in the plugin's `package.json` (there is no separate
   `plugin.json`), and the packaged `.dlient` file is generated from it.
 
+## Adding a new plugin
+
+A plugin lives in a top-level directory named after its id: the host's dev-source flow loads
+`<plugins>/<pluginId>`, so the **directory name must equal `dlient.id`**, and the id may only
+contain lowercase letters, digits and hyphens (starting with a letter).
+
+1. Scaffold it from the official template:
+
+   ```bash
+   npx @dlient-open/create-plugin my-plugin --name "My Plugin"
+   ```
+
+2. The scaffold creates neither a git repository nor dependencies, and it does not produce
+   everything this repository expects. Complete the plugin before opening the PR:
+
+   | Missing after scaffolding | Why it is required here |
+   | --- | --- |
+   | `package-lock.json` | CI installs with `npm ci`, which fails without a lockfile — run `npm install` and commit it |
+   | `"typecheck": "tsc --noEmit"` in `package.json` | CI runs `npm run typecheck` for every plugin |
+   | `README.md` and `README.cn.md` | Plugin documentation, structured like the existing plugins |
+   | `LICENSE` | MIT, matching the repository |
+   | A row in the root `README.md` and `README.cn.md` plugin tables | How users find the plugin |
+
+   The `package.json` must carry the `dlient` manifest (`dlient.id` / `name` / `type` / `icon` /
+   `permissions`) — there is no separate `plugin.json`.
+
+3. Declare only the permissions the plugin actually uses. A new plugin asking for broad `fs.*` /
+   `child.*` access will be sent back for revision.
+
+4. `skills/SKILL.md` and `assets/mcp.json` are optional — include them only if the plugin exposes
+   an AI skill or MCP tools.
+
+No CI change is needed: `.github/workflows/ci.yml` discovers plugins by the `dlient` field in
+their `package.json`, so a new directory is picked up and checked automatically.
+
 ## CI
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every pull request and on pushes to
