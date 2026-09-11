@@ -68,6 +68,10 @@ npm run pack     # 构建并打包为 <id>-<version>.dlient
 
 在 dlient-open 中点击左下角的**「＋ 导入插件」**，选择 `.dlient` 包即可；随后插件会出现在「已安装应用」中。
 
+## 参与贡献
+
+所有改动都通过 PR 合入，分支 / 提交 / 评审约定见 [CONTRIBUTING.md](CONTRIBUTING.md)，CI 检查项见 [ci.yml](.github/workflows/ci.yml)。
+
 ## 许可证
 
 [MIT](LICENSE) © 2026 dlient contributors

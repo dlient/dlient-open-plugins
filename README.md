@@ -68,6 +68,10 @@ Common scripts, defined per plugin:
 
 In dlient-open, use the bottom-left **“＋ Import plugin”** entry and pick the `.dlient` package; the plugin then appears under “Installed apps”.
 
+## Contributing
+
+Changes land through pull requests — see [CONTRIBUTING.md](CONTRIBUTING.md) for the branch, commit and review conventions, and [ci.yml](.github/workflows/ci.yml) for the checks CI runs on every PR.
+
 ## License
 
 [MIT](LICENSE) © 2026 dlient contributors

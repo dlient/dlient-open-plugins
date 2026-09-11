@@ -109,6 +109,7 @@
   },
   "scripts": {
     "build": "node script/build-clean.mjs && npm run build:ui && npm run build:worker",
+    "typecheck": "tsc --noEmit",
     "build:ui": "vite build",
     "build:worker": "node script/build-worker.mjs",
     "pack": "npm run build && node script/make-dlient.mjs",

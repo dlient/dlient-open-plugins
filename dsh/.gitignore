@@ -1,4 +1,4 @@
-﻿# Logs
+# Logs
 logs
 *.log
 npm-debug.log*
@@ -18,8 +18,7 @@ pack/
 *.dlient
 plugin.asar
 
-# 锁文件（monorepo 约定：插件锁文件不入库）
-package-lock.json
+# 锁文件：package-lock.json 需入库，CI 用 npm ci 保证依赖可复现
 
 # Editor directories and files
 .vscode/*
