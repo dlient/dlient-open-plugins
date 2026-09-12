@@ -19,9 +19,9 @@ const NS = 'dsh'
 
 export interface ChatProps {
   /**
-   * 启动时注册并打开的 workspace 目录：既作为 `--workspace` 传给 dsh（注册成真实 workspace group），
-   * 也编码后拼进页面 URL（`?workspace=`）让客户端选中它。
-   * 注意：在服务启动时生效；运行中变更需先 `dsh.chatStop` 再重新启动。
+   * 要打开的 workspace 目录：编码后拼进页面 URL（`?workspace=`），dsh 客户端据此选中该工作区。
+   * 变更只会让本组件重新加载内嵌 Webview（`src` 变化 → 重建 WebContentsView 并打开该目录的最新会话），
+   * 服务本身不受影响、不重启。
    */
   workspace?: string
   /**
@@ -33,7 +33,8 @@ export interface ChatProps {
 
 interface ChatStatus {
   phase: 'idle' | 'preparing' | 'installing' | 'starting' | 'ready' | 'error'
-  url?: string
+  /** 服务监听端口（worker 只回端口，URL 由本组件拼） */
+  port?: number
   error?: string
   /** 是否启动过：stop 后为 true，用于区分「从未启动（自动启动）」与「已停止（不自动重启）」 */
   startedOnce?: boolean
@@ -67,14 +68,14 @@ export function Chat({ workspace, visible }: ChatProps) {
   const start = () => {
     if (startingRef.current) return
     startingRef.current = true
-    // 保留已有 url（仅切阶段）：就绪时重复 chatStart 是幂等的，但若把 url 丢掉，
+    // 保留已有 port（仅切阶段）：就绪时重复 chatStart 是幂等的，但若把 port 丢掉，
     // 内嵌 <Webview> 会被卸载、就绪后再重建 → 每次展开分栏都重新加载 chat 页面。
     setStatus((prev) => ({ ...prev, phase: 'preparing' }))
     void api
-      .request<{ ok: boolean; url?: string; error?: string }>('dsh.chatStart', [{ workspace }])
+      .request<{ ok: boolean; port?: number; error?: string }>('dsh.chatStart')
       .then((res) => {
         const d = res?.data
-        if (isApiOk(res) && d?.ok && d.url) setStatus({ phase: 'ready', url: d.url })
+        if (isApiOk(res) && d?.ok && d.port !== undefined) setStatus({ phase: 'ready', port: d.port })
         else
           setStatus({
             phase: 'error',
@@ -93,11 +94,11 @@ export function Chat({ workspace, visible }: ChatProps) {
   // 折叠（visible === false）时不启动：内嵌方（如 dev-tools 预览）折叠 AI 分栏时组件仍挂载，
   // 不应触发 dsh 启动与授权弹框；展开（visible 变 true）时才自动启动。
   // 已启动的进程保持存活：worker 侧 chatStart 幂等，重复调用直接返回当前状态，不会重复安装/重启。
-  // 已就绪（有 url）时整段短路：内嵌方反复「折叠 / 展开」分栏只应切可见性，
+  // 已就绪（有 port）时整段短路：内嵌方反复「折叠 / 展开」分栏只应切可见性，
   // 走到 start() 会把渲染态打回 preparing → <Webview> 卸载重建 → 每次都重新加载 chat 页面。
   useEffect(() => {
     if (visible === false) return
-    if (statusRef.current.url) return
+    if (statusRef.current.port !== undefined) return
     let cancelled = false
     const timer = window.setTimeout(() => {
       if (!cancelled) start()
@@ -123,13 +124,19 @@ export function Chat({ workspace, visible }: ChatProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible])
 
+  /** Webview 地址：端口来自 worker，workspace 由本组件拼（dsh 客户端按 ?workspace= 选中工作区） */
+  const src =
+    status.port === undefined
+      ? undefined
+      : `http://127.0.0.1:${status.port}${workspace ? `?workspace=${encodeURIComponent(workspace)}` : ''}`
+
   return (
     <div className="dsh-root">
-      {/* 有 url 即服务在线（worker 仅在 ready 时推 url，idle/error 会清掉）：
+      {/* 有 src 即服务在线（worker 仅在 ready 时推 port，idle/error 会清掉）：
           不按 phase 渲染，避免瞬态（如 preparing）把 <Webview> 卸载重建 → chat 页面重新加载 */}
-      {status.url ? (
+      {src ? (
         <div className="dsh-body">
-          <Webview src={status.url} visible={visible !== false} />
+          <Webview src={src} visible={visible !== false} />
         </div>
       ) : (
         <div className="dsh-empty">

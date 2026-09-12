@@ -41,8 +41,9 @@ import { PluginView } from '@dlient-open/ui'
 ```
 
 - `pluginId` 是 dsh 的运行实例 id（已安装插件为 `dsh`，dev 实例为 `dsh@dev`）。
-- 挂载时 `Chat` 调用 `dsh.chatStart`（worker 内幂等 + 单飞：多个消费者并发挂载也只会安装 / 启动一次），并用 `Webview` 内嵌 `http://127.0.0.1:<port>[?workspace=…]`。
-- `workspace?: string`：（1）作为 `--workspace` 传给 dsh（注册为真实工作区分组），（2）以 `?workspace=…` 拼进页面 URL（客户端自动选中该工作区）。在服务**启动时**生效；运行中修改需 `dsh.chatStop` 后重启。
+- 挂载时 `Chat` 调用 `dsh.chatStart`（worker 内幂等 + 单飞：多个消费者并发挂载也只会安装 / 启动一次），拿到**端口**后用 `Webview` 内嵌 `http://127.0.0.1:<port>[?workspace=…]`。
+- worker 只负责「进程 + 端口」：`dsh.chatStart` 在端口仍在监听时复用已有实例，否则启动一个。
+- `workspace?: string` 以 `?workspace=…` 拼进页面 URL，由 dsh 客户端打开该目录。变更只会重新加载本组件的 `Webview` —— 服务不重启，并会重新打开该目录的最新会话。
 - `visible?: boolean`（默认 true）—— 传 `false` 可**不卸载**地隐藏内嵌 Webview（WebContentsView 从窗口层移除，webContents 保持存活；不会重新加载）。
 - 加载 / 失败状态（含重试按钮）由 `Chat` 自行渲染。
 
@@ -53,9 +54,9 @@ import { PluginView } from '@dlient-open/ui'
 | `dsh.start` | 确保 Node.js 与 DSH 就绪，启动 `dsh web` 服务并返回 URL |
 | `dsh.stop` | 停止 `dsh web` 服务，并还原用户 `settings.yaml` |
 | `dsh.status` | 查询 `dsh web` 服务状态（phase / url / error） |
-| `dsh.chatStart` | 安装 `dlient-chat` profile 并启动 chat 服务，返回 URL |
+| `dsh.chatStart` | 安装 `dlient-chat` profile 并启动 chat 服务，返回监听端口 |
 | `dsh.chatStop` | 停止 chat 服务 |
-| `dsh.chatStatus` | 查询 chat 服务状态（phase / url / error） |
+| `dsh.chatStatus` | 查询 chat 服务状态（phase / port / error） |
 | `dsh.applyAppearance` | 下发宿主语言 / 主题（同步进 `~/.dsh/settings.yaml`） |
 | `dsh.restoreAppearance` | 还原 `~/.dsh/settings.yaml`（写回用户备份基线） |
 

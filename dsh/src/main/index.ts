@@ -412,15 +412,16 @@ rpc.registerHandler('dsh.stop', async () => {
 
 rpc.registerHandler('dsh.status', () => current)
 
-// chat 面（渲染端 Chat 组件 / 其它插件经 PluginView 挂载后调用）
-rpc.registerHandler('dsh.chatStart', async ([options]) => {
+// chat 面（渲染端 Chat 组件 / 其它插件经 PluginView 挂载后调用）：
+// 只回答「服务在哪个端口」，workspace 由渲染端拼进 Webview 的 URL
+rpc.registerHandler('dsh.chatStart', async () => {
   // 启动前按最近下发的宿主外观同步 settings.yaml（chat 页面启动即用目标语言/主题）
   try {
     await syncDshAppearance(appearanceDesired)
   } catch {
     /* settings 同步失败不阻塞启动 */
   }
-  return chat.start(options ?? {})
+  return chat.start()
 })
 rpc.registerHandler('dsh.chatStatus', () => chat.status())
 rpc.registerHandler('dsh.chatStop', async () => chat.stop())

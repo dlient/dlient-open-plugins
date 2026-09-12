@@ -5,8 +5,9 @@
  * 经 esbuild 虚拟模块 `dlient:chat-assets` 内联进 worker（见 script/build-worker.mjs）：
  *   - `install.js` 负责把 profile/* 复制到 <DSH_HOME>/profiles/dlient-chat/，
  *     再用 `dsh plugin add file:<pkg>`（pnpm）把包装进该 profile；
- *   - 之后以 `dsh --profile dlient-chat --port <free> [--workspace <path>]` 启动 Web 服务，
- *     并在返回的 URL 上带 `?workspace=<encodeURIComponent(path)>`（客户端据此选中该工作区）。
+ *   - 之后以 `dsh --profile dlient-chat --port <free>` 启动 Web 服务，只把**端口**交给渲染端；
+ *     渲染端自行拼 `http://127.0.0.1:<port>[?workspace=<encodeURIComponent(path)>]` 用 Webview 打开。
+ *     workspace 是 URL 驱动的：换目录只需重新加载该 Webview（服务不重启），客户端会自动选中该工作区。
  *
  * 沙箱合规：worker 自身不碰 node:fs / node:child_process，全部经 host-api
  * （rpc.fs / rpc.child / rpc.net）。**缺 pnpm 会自动装**（同一 node prefix），
@@ -27,15 +28,11 @@ const PROFILE_FILES = ['package.json', 'cordis.yml', 'cordis.patch.yml', 'pnpm-w
 /** 对外状态（渲染端经 dsh.chatStatus / push 'dsh.chatStatus' 消费） */
 export interface ChatStatus {
   phase: 'idle' | 'preparing' | 'installing' | 'starting' | 'ready' | 'error'
-  url?: string
+  /** 服务监听端口（ready 时才有值）：渲染端据此拼 Webview 的 URL */
+  port?: number
   error?: string
   /** 是否启动过：stop 后为 true，渲染端据此区分「从未启动（自动启动）」与「已停止（不自动重启）」 */
   startedOnce?: boolean
-}
-
-export interface ChatStartOptions {
-  /** 启动时注册并自动打开的工作区目录（透传 `--workspace`） */
-  workspace?: string
 }
 
 export interface ChatDeps {
@@ -52,8 +49,9 @@ export interface ChatDeps {
   pushStatus: (status: ChatStatus) => void
 }
 
+/** chat 服务对外契约：只回答「服务在哪个端口」；workspace 由渲染端拼进 URL，worker 不参与 */
 export interface ChatController {
-  start: (options?: ChatStartOptions) => Promise<{ ok: boolean; url?: string; error?: string }>
+  start: () => Promise<{ ok: boolean; port?: number; error?: string }>
   status: () => ChatStatus
   stop: () => Promise<{ ok: boolean }>
   dispose: () => void
@@ -157,23 +155,22 @@ export function createChatController(deps: ChatDeps): ChatController {
   const { rpc } = deps
   let child: ChildHandle | null = null
   let current: ChatStatus = { phase: 'idle' }
-  let workspace: string | undefined
+  /** 已启动服务的监听端口（未运行 / 已停止时为 undefined） */
+  let port: number | undefined
   /** 单飞：并发的 chatStart（多消费方同时挂载 Chat）合并为一次安装/启动 */
-  let inflight: Promise<{ ok: boolean; url?: string; error?: string }> | null = null
+  let inflight: Promise<{ ok: boolean; port?: number; error?: string }> | null = null
 
   const push = (s: ChatStatus): void => {
     current = s
     deps.pushStatus(s)
   }
 
-  async function launch(node: string, port: number): Promise<string> {
+  /** 启动 dsh chat 服务并等待端口就绪；workspace 不在这里参与（由渲染端拼进 URL） */
+  async function launch(node: string, listenPort: number): Promise<void> {
     const cli = await deps.dshCliPath(node)
     // DSH_HOME 必须显式传给 dsh 进程：否则它会回落到 ~/.dsh，找不到刚装好的 dlient-chat profile
     const home = await deps.resolveDshHome()
-    const args = [cli, '--profile', PROFILE_NAME, '--no-open', '--host', '127.0.0.1', '--port', String(port)]
-    // --workspace 把目录注册成真实 workspace group；URL 上的 ?workspace= 再按路径选中它（两者语义不同，需成对使用）
-    if (workspace) args.push('--workspace', workspace)
-    const url = `http://127.0.0.1:${port}${workspace ? `?workspace=${encodeURIComponent(workspace)}` : ''}`
+    const args = [cli, '--profile', PROFILE_NAME, '--no-open', '--host', '127.0.0.1', '--port', String(listenPort)]
     const handle = await rpc.child.spawn({
       cmd: CMD_NODE,
       args,
@@ -188,16 +185,16 @@ export function createChatController(deps: ChatDeps): ChatController {
     handle.onStderr((d: string) => {
       output += d
     })
-    return await new Promise<string>((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       let settled = false
       const deadline = Date.now() + 120000
       const timer = setInterval(() => {
         void (async () => {
           if (settled) return
-          if (await deps.probePort(port)) {
+          if (await deps.probePort(listenPort)) {
             settled = true
             clearInterval(timer)
-            resolve(url)
+            resolve()
             return
           }
           if (Date.now() >= deadline) {
@@ -222,11 +219,11 @@ export function createChatController(deps: ChatDeps): ChatController {
     })
   }
 
-  async function doStart(options?: ChatStartOptions): Promise<{ ok: boolean; url?: string; error?: string }> {
+  async function doStart(): Promise<{ ok: boolean; port?: number; error?: string }> {
     try {
-      workspace = options?.workspace
       push({ phase: 'preparing', startedOnce: current.startedOnce })
-      const port = await deps.getFreePort()
+      const listenPort = await deps.getFreePort()
+      port = listenPort
       const node = await deps.resolveNode()
       push({ phase: 'installing', startedOnce: current.startedOnce })
       // 一次 npm 全局清单查询同时服务「装 dsh」与「装 pnpm」两个判断
@@ -234,21 +231,27 @@ export function createChatController(deps: ChatDeps): ChatController {
       if (!packages.has('@deepseek-ai/dsh')) await deps.installDsh(node)
       await ensureProfile(deps, node, packages)
       push({ phase: 'starting', startedOnce: current.startedOnce })
-      const url = await launch(node, port)
-      push({ phase: 'ready', url, startedOnce: true })
-      return { ok: true, url }
+      await launch(node, listenPort)
+      push({ phase: 'ready', port: listenPort, startedOnce: true })
+      return { ok: true, port: listenPort }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
+      port = undefined
       push({ phase: 'error', error: message, startedOnce: current.startedOnce === true })
       return { ok: false, error: message }
     }
   }
 
   return {
-    start(options) {
-      if (child && current.url) return Promise.resolve({ ok: true, url: current.url })
-      if (inflight) return inflight
-      inflight = doStart(options).finally(() => {
+    async start() {
+      // 启动中：复用同一次启动（单飞）
+      if (inflight !== null) return inflight
+      // 已在运行：端口仍在监听 → 直接复用；句柄还在但端口已不通（进程崩了）→ 按未运行处理，重启一个
+      const running = child === null ? undefined : port
+      if (running !== undefined && (await deps.probePort(running))) return { ok: true, port: running }
+      child = null
+      port = undefined
+      inflight = doStart().finally(() => {
         inflight = null
       })
       return inflight
@@ -257,6 +260,7 @@ export function createChatController(deps: ChatDeps): ChatController {
     async stop() {
       const handle = child
       child = null
+      port = undefined
       await handle?.kill()
       push({ phase: 'idle', startedOnce: true })
       return { ok: true }
@@ -264,6 +268,7 @@ export function createChatController(deps: ChatDeps): ChatController {
     dispose() {
       const handle = child
       child = null
+      port = undefined
       void handle?.kill()
     },
   }
