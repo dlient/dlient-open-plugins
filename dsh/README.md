@@ -41,8 +41,9 @@ import { PluginView } from '@dlient-open/ui'
 ```
 
 - `pluginId` is the running instance id of dsh (`dsh` for an installed plugin, `dsh@dev` for a dev instance).
-- On mount, `Chat` calls `dsh.chatStart` (idempotent + single-flight in the worker: concurrent mounts install/start once) and embeds `http://127.0.0.1:<port>[?workspace=…]` with `Webview`.
-- `workspace?: string` is (1) passed to dsh as `--workspace` (registers a real workspace group) and (2) appended to the page URL as `?workspace=…` (the client selects it). Takes effect when the service **starts**; changing it while running requires `dsh.chatStop` and a restart.
+- On mount, `Chat` calls `dsh.chatStart` (idempotent + single-flight in the worker: concurrent mounts install/start once), asks for the **port** and embeds `http://127.0.0.1:<port>[?workspace=…]` with `Webview`.
+- The worker owns process + port only: `dsh.chatStart` reuses the running instance when its port is still listening, and starts one otherwise.
+- `workspace?: string` is appended to the page URL as `?workspace=…`, and the dsh client opens that directory. Changing it only reloads this `Webview` — the service is not restarted, and that workspace's latest session is reopened.
 - `visible?: boolean` (default true) — pass `false` to hide the embedded Webview **without unmounting** (the WebContentsView is removed from the window layer while its webContents stays alive; nothing reloads).
 - Loading / failure states (with a retry button) are rendered by `Chat` itself.
 
@@ -53,9 +54,9 @@ import { PluginView } from '@dlient-open/ui'
 | `dsh.start` | Ensure Node.js + DSH, start the `dsh web` service and return the URL |
 | `dsh.stop` | Stop the `dsh web` service and restore the user's `settings.yaml` |
 | `dsh.status` | Query the `dsh web` service status (phase / url / error) |
-| `dsh.chatStart` | Install the `dlient-chat` profile, start the chat service and return the URL |
+| `dsh.chatStart` | Install the `dlient-chat` profile, start the chat service and return the listening port |
 | `dsh.chatStop` | Stop the chat service |
-| `dsh.chatStatus` | Query the chat service status (phase / url / error) |
+| `dsh.chatStatus` | Query the chat service status (phase / port / error) |
 | `dsh.applyAppearance` | Push the host language / theme (synced into `~/.dsh/settings.yaml`) |
 | `dsh.restoreAppearance` | Restore `~/.dsh/settings.yaml` (write back the user baseline) |
 
