@@ -1,5 +1,7 @@
 name: CI
 
+# Repository policy: every `uses:` must be pinned to a full-length commit SHA, so the
+# actions below are pinned to the v4 tags' commits instead of `@v4`.
 on:
   pull_request:
     branches: [main]
@@ -23,7 +25,7 @@ jobs:
     outputs:
       plugins: ${{ steps.list.outputs.plugins }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: List plugin directories
         id: list
@@ -59,9 +61,9 @@ jobs:
       run:
         working-directory: ${{ matrix.plugin }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: npm
